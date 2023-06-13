@@ -1,5 +1,6 @@
-public class Livro {
-   private static int cod_global = 0;
+import java.io.Serializable;
+
+public class Livro implements Serializable{
    private int cod_livro;
    private String nome_livro;
    private String autor;
@@ -8,9 +9,8 @@ public class Livro {
    private boolean situacao;    // Se livro esta emprestado ou não
    private int mat_usuario = 0; // Mátricula da pessoa que emprestou o livro
 
-   public Livro(String nome_livro, String autor, String categoria, int paginas){
-      cod_global++;
-      this.cod_livro = cod_global;
+   public Livro(int cod_livro, String nome_livro, String autor, String categoria, int paginas){
+      this.cod_livro = cod_livro;
       this.nome_livro = nome_livro;
       this.autor = autor;
       this. categoria = categoria;
@@ -38,11 +38,27 @@ public class Livro {
       this.situacao = situacao;
    }
 
+   public String getNome(){
+      return this.nome_livro;
+   }
+   
    public String toString(){
 
       String content = "";
-      content += "Código: "+this.cod_livro+"    Livro: "+this.nome_livro;
+
+      content += String.format("  %-10s", this.cod_livro);
+      content += String.format("%-20s", this.nome_livro);
+      content += String.format("%-25s", this.autor);
+      content += String.format("%-13s", this.categoria);
+      content += String.format("%-10s", this.paginas);
+
+      if (this.situacao == true){
+         content += String.format("%-15s", "(Emprestado)");
+         content += String.format("%s  \n", this.mat_usuario);
+      }
+      else{
+         content += String.format("%-15s\n", "(Disponível)");
+      }
       return content;
-      // Apresentar livro se livro esta disponível ou não
    }
 }

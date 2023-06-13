@@ -1,69 +1,102 @@
 import java.util.ArrayList;
+import javax.swing.*;
 
 public class Pessoa extends Usuario{
 
-   public Pessoa(String nome_usuario, int matricula,  String senha){
-      super(nome_usuario, matricula, senha);
+   public Pessoa(){}
+
+   public Pessoa(String nome_usuario, int matricula,  String senha, boolean perfil){
+      super(nome_usuario, matricula, senha, perfil);
    }
 
-   public void emprestar_livro(ArrayList<Livro> livros, int cod_livro){
+   public void emprestar_livro(ArrayList<Livro> livros, ArrayList<Usuario> usuarios, int matricula, int cod_livro) throws ExceptionLivro{
 
-      if(this.limite_livros == 3)
-         System.out.println("Você atingiu o limite de empréstimos!");
-      else{
-         if(verificar_livro(livros, cod_livro)){
-            if(verificar_usuario(livros, cod_livro))
-               System.out.println("Você já emprestou esse livro!");
-            else{
-               for (Livro livro : livros) {
-                  if(livro.getCod() == cod_livro){
-                     if(livro.getSituacao() == false){
-                        livro.setSituacao(true);
-                        livro.setMatUsuario(this.matricula);
-                        this.limite_livros++;
-                        System.out.println("EMPRESTADO -> "+livro.toString());
+      try{
+         if(verificar_limite(usuarios, matricula) == 3)
+            throw new ExceptionLimiteLivro();
+         else{
+            if(verificar_livro(livros, cod_livro)){
+               if(verificar_emprestimo(livros, cod_livro, matricula))
+                  throw new ExceptionEmprestar("Você já emprestou esse livro!");
+               else{
+                  for (Livro livro : livros) {
+                     if(livro.getCod() == cod_livro){
+                        if(livro.getSituacao() == false){
+                           livro.setSituacao(true);
+                           livro.setMatUsuario(matricula);
+                           atualizar_limite(usuarios, matricula, 1);
+                           JOptionPane.showMessageDialog(null, "Livro emprestado: "+livro.getNome());
+                        }
+                        else
+                           throw new ExceptionEmprestar("Livro já emprestado!");
                      }
-                     else
-                        System.out.println("Livro já emprestado!");
                   }
                }
             }
+            else
+               throw new ExceptionLivroNaoEncontrado();
          }
-         else
-            System.out.println("Livro não encontrado!");
+      }
+      catch(ExceptionLimiteLivro e){
+         JOptionPane.showMessageDialog(null, e.getMessage());
+      }
+      catch(ExceptionLivroNaoEncontrado e){
+         JOptionPane.showMessageDialog(null, e.getMessage());
+      }
+      catch(ExceptionEmprestar e){
+         JOptionPane.showMessageDialog(null, e.getMessage());
       }
    }
 
-   public void devolver_livro(ArrayList<Livro> livros, int cod_livro){
+   public void devolver_livro(ArrayList<Livro> livros,  ArrayList<Usuario> usuarios,  int matricula, int cod_livro) throws ExceptionLivro{
 
-      if(this.limite_livros == 0){
-         System.out.println("Não há livros para devolver!");
-      }
-      else{
-         if(verificar_livro(livros, cod_livro)){
-            if(!verificar_usuario(livros, cod_livro))
-               System.out.println("Este livro não pode ser devolvido por você!");
-            else{
-               for (Livro livro : livros) {
-                  if(livro.getCod() == cod_livro){
-                     livro.setSituacao(false);
-                     livro.setMatUsuario(0);
-                     this.limite_livros--;
-                     System.out.println("DEVOLVIDO -> "+livro.toString());
+      try{
+         if(verificar_limite(usuarios, matricula) == 0){
+            throw new ExceptionDevolver("Não há livros para devolver!");
+         }
+         else{
+            if(verificar_livro(livros, cod_livro)){
+               if(!verificar_emprestimo(livros, cod_livro, matricula))
+                  throw new ExceptionDevolver("Este livro não pode ser devolvido por você!");
+               else{
+                  for (Livro livro : livros) {
+                     if(livro.getCod() == cod_livro){
+                        livro.setSituacao(false);
+                        livro.setMatUsuario(0);
+                        atualizar_limite(usuarios, matricula, 2);
+                        JOptionPane.showMessageDialog(null, "Livro devolvido: "+livro.getNome());
+                     }
                   }
                }
             }
+            else
+               throw new ExceptionLivroNaoEncontrado();
          }
-         else
-            System.out.println("Livro não encontrado!");
+      }
+      catch(ExceptionDevolver e){
+         JOptionPane.showMessageDialog(null, e.getMessage());
+      }
+      catch(ExceptionLivroNaoEncontrado e){
+         JOptionPane.showMessageDialog(null, e.getMessage());
       }
    }
 
-   public void consultar_livros(ArrayList<Livro> livros){
+   public String consultar_livros(ArrayList<Livro> livros){
+
+      String content = "";
+
+      content += String.format("  %-10s", "CÓDIGO");
+      content += String.format("%-20s", "NOME DO LIVRO");
+      content += String.format("%-25s", "AUTOR");
+      content += String.format("%-13s", "CATEGORIA");
+      content += String.format("%-12s", "PÁGINAS");
+      content += String.format("%-12s", "SITUAÇÃO");
+      content += String.format("%s  \n", "USUÁRIO");
 
       for(Livro livro : livros){
-         System.out.println(livro);
+         content += livro.toString();
       }
+      return content;
    }
 
    public boolean verificar_livro(ArrayList<Livro> livros, int cod_livro){
@@ -74,15 +107,33 @@ public class Pessoa extends Usuario{
       }
       return false;
    }
-
-   public boolean verificar_usuario(ArrayList<Livro> livros, int cod_livro){
+   
+   public boolean verificar_emprestimo(ArrayList<Livro> livros, int cod_livro, int matricula){
 
       for (Livro livro : livros) {
          if(livro.getCod() == cod_livro){
-            if(livro.getMatUsuario() == this.matricula)
+            if(livro.getMatUsuario() == matricula)
                return true;
          }
       }
       return false;
    }
+
+   public int verificar_limite(ArrayList<Usuario> usuarios, int matricula){
+
+      for (Usuario usuario : usuarios) {
+         if(usuario.getMatricula() == matricula)
+            return usuario.getLimite();
+      }
+      return 0;
+   }
+
+   public void atualizar_limite(ArrayList<Usuario> usuarios, int matricula, int tipo){
+
+      for (Usuario usuario : usuarios) {
+         if(usuario.getMatricula() == matricula)
+            usuario.setLimite(tipo);
+      }
+   }
+
 }
